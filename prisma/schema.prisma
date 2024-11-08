@@ -8,14 +8,145 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Definindo o banco de dados
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  password String
+// Definindo as tabelas do banco de dados
+
+model Usuario {
+  id_usuario     Int       @id @default(autoincrement())
+  nome           String    @db.VarChar(191)
+  email          String    @unique @db.VarChar(191)
+  senha          String    @db.VarChar(191)
+  tipo_usuario   EnumTipoUsuario
+  data_criacao   DateTime  @default(now())
+  status         EnumStatus
+  cpf            String    @db.VarChar(20)
+  nacionalidade  String    @db.VarChar(191)
+  localizacao    String    @db.VarChar(191)
+  telefone       Int
+  foto_perfil    String?   @db.VarChar(45)
+
+  // Relacionamentos
+  freelancer     Freelancer?
+  cliente        Cliente?
+  projetos       Projeto[]
+  avaliacoes     Avaliacao[]
+
+  @@map("usuarios")
+}
+
+model Freelancer {
+  id_usuario Int     @id
+  biografia  String? @db.Text
+  github     String? @db.VarChar(191)
+  portfolio  String? @db.VarChar(191)
+  avaliacao  Float?
+
+  // Relacionamentos
+  usuario     Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  habilidades FreelancerHabilidade[]
+  servicos    Servico[]
+
+  @@map("freelancers")
+}
+
+model Cliente {
+  id_usuario Int     @id
+  empresa    String  @db.VarChar(191)
+
+  // Relacionamentos
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario])
+
+  @@map("clientes")
+}
+
+model Habilidade {
+  id_habilidade Int     @id @default(autoincrement())
+  nome          String  @db.VarChar(100)
+  descricao     String? @db.Text
+
+  // Relacionamentos
+  freelancers FreelancerHabilidade[]
+
+  @@map("habilidades")
+}
+
+model FreelancerHabilidade {
+  freelancers_id_usuario Int
+  habilidades_id_habilidade Int
+
+  // Relacionamentos
+  freelancer Freelancer @relation(fields: [freelancers_id_usuario], references: [id_usuario])
+  habilidade Habilidade @relation(fields: [habilidades_id_habilidade], references: [id_habilidade])
+
+  @@id([freelancers_id_usuario, habilidades_id_habilidade])
+  @@map("freelancers_habilidades")
+}
+
+model Projeto {
+  id_projeto  Int       @id @default(autoincrement())
+  id_usuario  Int
+  titulo      String    @db.VarChar(191)
+  descricao   String?   @db.Text
+  data_inicio DateTime
+  data_fim    DateTime
+  status      EnumStatusProjeto
+
+  // Relacionamentos
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  servicos Servico[]
+
+  @@map("projetos")
+}
+
+model Servico {
+  id_servico           Int     @id @default(autoincrement())
+  freelancers_id_usuario Int
+  projetos_id_projeto   Int
+  descricao           String? @db.Text
+  preco               Decimal @db.Decimal(10, 2)
+
+  // Relacionamentos
+  freelancer Freelancer @relation(fields: [freelancers_id_usuario], references: [id_usuario])
+  projeto    Projeto    @relation(fields: [projetos_id_projeto], references: [id_projeto])
+  avaliacoes Avaliacao[]
+
+  @@map("servicos")
+}
+
+model Avaliacao {
+  id_avaliacao  Int     @id @default(autoincrement())
+  id_servico    Int
+  nota          Int
+  comentario    String? @db.Text
+  avaliacaoCol  String? @db.VarChar(45)
+
+  // Relacionamentos
+  servico Servico @relation(fields: [id_servico], references: [id_servico])
+
+  @@map("avaliacoes")
+  Usuario Usuario[]
+}
+
+// Definindo enums conforme o diagrama
+
+enum EnumTipoUsuario {
+  FREELANCER
+  CLIENTE
+}
+
+enum EnumStatus {
+  ATIVO
+  INATIVO
+}
+
+enum EnumStatusProjeto {
+  ABERTO
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
 }
